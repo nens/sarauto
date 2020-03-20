@@ -1,0 +1,5 @@
+# Create Stack Parameters
+
+resamplingType			NEAREST_NEIGHBOUR
+initialOffsetMethod		Product Geolocation
+extent				Master

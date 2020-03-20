@@ -1,0 +1,4 @@
+# Calibration Parameters
+
+auxFile			Product Auxiliary File
+outputSigmaBand		true

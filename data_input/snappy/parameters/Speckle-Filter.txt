@@ -1,0 +1,11 @@
+filter			Refined Lee
+filterSizeX		3
+filterSizeY		3
+dampingFactor		2
+estimateENL		true
+enl			1.0
+numLooksStr		1
+windowSize		7x7
+targetWindowSizeStr	3x3
+sigmaStr		0.9
+anSize			50

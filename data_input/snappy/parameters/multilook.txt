@@ -1,0 +1,6 @@
+# Multilook Parameters
+
+nRgLooks 			2
+nAzLooks			2
+outputIntensity 		true
+grSquarePixel 			false

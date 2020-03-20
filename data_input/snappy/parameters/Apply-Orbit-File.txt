@@ -1,0 +1,5 @@
+# Apply Orbit File Parameters
+
+orbitType		Sentinel Precise (Auto Download)
+polyDegree 		3      
+continueOnFail 		false

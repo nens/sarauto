@@ -1,0 +1,8 @@
+# Subset Parameters
+
+copyMetadata			true
+region				0,0,28844,22429
+geoRegion			POLYGON ((104.70 -5.045, 105.40 -5.045, 105.40 -5.412, 104.70 -5.412, 104.70 -5.045))
+fullSwath			false
+subSamplingX			1
+subSamplingY			1

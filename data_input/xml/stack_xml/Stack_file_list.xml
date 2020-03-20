@@ -1,0 +1,45 @@
+<graph id="Graph">
+  <version>1.0</version>
+    <node id="ProductSet-Reader">
+    <operator>ProductSet-Reader</operator>
+    <sources/>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <fileList>C:\Users\Sarauto2019\Documents\2\subset_praproses_result\subset_S1A_IW_GRDH_1SDV_20180407T224132_20180407T224157_021367_024C83_3B2B_App_Cal_Spe_Ter_Lin_Sub.dim,C:\Users\Sarauto2019\Documents\2\subset_praproses_result\subset_S1A_IW_GRDH_1SDV_20180419T224133_20180419T224157_021542_0251F7_60C7_App_Cal_Spe_Ter_Lin_Sub.dim</fileList>
+    </parameters>
+  </node>
+  <node id="CreateStack">
+    <operator>CreateStack</operator>
+    <sources>
+      <sourceProduct.2 refid="ProductSet-Reader"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <masterBands/>
+      <sourceBands/>
+      <resamplingType>NEAREST_NEIGHBOUR</resamplingType>
+      <extent>Master</extent>
+      <initialOffsetMethod>Product Geolocation</initialOffsetMethod>
+    </parameters>
+  </node>
+  <node id="Write">
+    <operator>Write</operator>
+    <sources>
+      <sourceProduct refid="CreateStack"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <file>C:\Users\Sarauto2019\Documents\target_dim.dim</file>
+      <formatName>BEAM-DIMAP</formatName>
+    </parameters>
+  </node>
+  <applicationData id="Presentation">
+    <Description/>
+    <node id="CreateStack">
+      <displayPosition x="233.0" y="133.0"/>
+    </node>
+    <node id="Write">
+            <displayPosition x="455.0" y="135.0"/>
+    </node>
+    <node id="ProductSet-Reader">
+      <displayPosition x="76.0" y="136.0"/>
+    </node>
+  </applicationData>
+</graph>
