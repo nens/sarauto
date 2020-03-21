@@ -5,36 +5,57 @@ import os, imp, time
 import glob
 import xml.etree.ElementTree as etree
 from snappy import ProductIO
+from sentinelsat import SentinelAPI, read_geojson, geojson_to_wkt
 import datetime
 import config
 import logging
+import shutil
 
 logger = logging.getLogger()
 
+cwd = os.getcwd()
 if config.classification_mode==1:
     target_name = config.target_name_dtw
 else:
     target_name = config.target_name_rf
 
 # Subset and Stack start...
-while not os.path.exists(os.getcwd()+"/update_config/update_praprocess.txt"):
+while not os.path.exists(cwd+"/update_config/update_praprocess.txt"):
     time.sleep(0.5)
 else:
     imp.reload(config)
-home = os.getcwd()
-dim_dir = home + config.xmlpraprocessresultstack
+dim_dir = cwd + config.xmlpraprocessresultstack
 if not os.path.exists(dim_dir):
     os.makedirs(dim_dir)
 
-xml_subset_exist_file = glob.glob(os.getcwd()+config.xmlpathsubset+"*.XML")
+# Align area of subset to area of geojson
+xml_subset_template_file = glob.glob(cwd + config.xmlpathsubset+"template/*.XML")[0]
+dst_polygon = geojson_to_wkt(read_geojson(cwd + config.geojson))
+src_polygon = "POLYGON ((104.70 -5.045, 105.40 -5.045, 105.40 -5.412, 104.70 -5.412, 104.70 -5.045))"
+with open(xml_subset_template_file) as f:
+    tree = etree.parse(f)
+    root = tree.getroot()
+    for elem in root.getiterator():
+        try:
+            elem.text = elem.text.replace(src_polygon, dst_polygon)
+        except AttributeError:
+            pass
+tree.write(cwd + config.xmlpathsubset + "Subset_aoi.XML")
+
+
+xml_subset_exist_file = glob.glob(cwd+config.xmlpathsubset+"*.XML")
 if xml_subset_exist_file:
-    isFile = home + config.xmlpraprocessresultsubset
+    isFile = cwd + config.xmlpraprocessresultsubset
     write_data = dim_dir + target_name + '_subset_stack.dim'  # Lampung_S1A_timeseries_2018Anual_Medium
 else:
-    isFile = home + config.new_praprocessresult
+    isFile = cwd + config.new_praprocessresult
     write_data = dim_dir + target_name + '_stack.dim'  # Lampung_S1A_timeseries_2018Anual_Medium
 
-xml_file = glob.glob(home+config.xmlpathstack+"*.XML")
+xml_file = glob.glob(cwd+config.xmlpathstack+"*.XML")
+
+
+
+
 tree = etree.parse(xml_file[0])
 elem = tree.findall(".//node")
 indx = 1
@@ -57,7 +78,7 @@ for ss in list_date:
         selected_file.append(rr[0])
 
 ##checkdir
-xml_dir = home+config.xmlprocesspathstack
+xml_dir = cwd+config.xmlprocesspathstack
 if not os.path.exists(xml_dir):
     os.makedirs(xml_dir)
 

@@ -1,1 +1,8 @@
 config.py
+
+data_output/
+data_input/geojson/
+logfile/
+sentineldata/
+update_config/
+*.pyc
