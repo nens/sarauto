@@ -31,6 +31,14 @@ if not os.path.exists(dim_dir):
 # Align area of subset to area of geojson
 xml_subset_template_file = glob.glob(cwd + config.xmlpathsubset+"template/*.XML")[0]
 dst_polygon = geojson_to_wkt(read_geojson(cwd + config.geojson))
+if "MULTIPOLYGON" in dst_polygon:
+    # XML subset expects POLYGON, so we select the first POLYGON
+    logger.info('MULTIPOLYGON')
+    dst_polygon = dst_polygon.replace("MULTIPOLYGON (((", "POLYGON ((")
+    dst_polygon = dst_polygon.replace("MULTIPOLYGON(((", "POLYGON ((")
+    dst_polygon = dst_polygon.replace("(((", "((")
+    dst_polygon = dst_polygon.replace(")))", "))")
+    dst_polygon = dst_polygon.split("))", 1)[0]
 src_polygon = "POLYGON ((104.70 -5.045, 105.40 -5.045, 105.40 -5.412, 104.70 -5.412, 104.70 -5.045))"
 with open(xml_subset_template_file) as f:
     tree = etree.parse(f)
