@@ -38,17 +38,8 @@ if "MULTIPOLYGON" in dst_polygon:
     dst_polygon = dst_polygon.replace("MULTIPOLYGON(((", "POLYGON ((")
     dst_polygon = dst_polygon.replace("(((", "((")
     dst_polygon = dst_polygon.replace(")))", "))")
-    dst_polygon = dst_polygon.split("))", 1)[0]
+    dst_polygon = dst_polygon.split("))", 1)[0] + "))"
 src_polygon = "POLYGON ((104.70 -5.045, 105.40 -5.045, 105.40 -5.412, 104.70 -5.412, 104.70 -5.045))"
-with open(xml_subset_template_file) as f:
-    tree = etree.parse(f)
-    root = tree.getroot()
-    for elem in root.getiterator():
-        try:
-            elem.text = elem.text.replace(src_polygon, dst_polygon)
-        except AttributeError:
-            pass
-tree.write(cwd + config.xmlpathsubset + "Subset_aoi.XML")
 
 
 xml_subset_exist_file = glob.glob(cwd+config.xmlpathsubset+"*.XML")
@@ -99,6 +90,10 @@ for d_file in selected_file:
 read_data=','.join(list_files)
 for entry in elem:
     try:
+        if (entry.attrib["id"]=="Subset"):
+            region = entry[2][0]
+            entry[3][0].text = dst_polygon
+            elem.remove(region)
         if (entry.attrib["id"]=="ProductSet-Reader"):
             entry[2][0].text = read_data
         if (entry.attrib["id"]=="Write"):
