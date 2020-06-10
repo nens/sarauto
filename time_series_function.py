@@ -9,14 +9,16 @@ from tqdm import tqdm
 from scipy.signal import savgol_filter
 import numba
 from numba.decorators import jit
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, parallel_backend
+import logging
+from copy import deepcopy
 
-warnings.filterwarnings('ignore')
+logger = logging.getLogger()
+
+warnings.filterwarnings("ignore")
 
 ###---------------------------------- Built in Function --------------------------------------###
 
-#--------- twDTW_spring_subset_wise------------#
-# Crop mapping on a subset time series images using twDTW_spring
 def twDTW_spring_subset_wise(uncls_feaIms, tsList, cropROI_mn, tsTrain, par_DTW, daysInterval, K_value):
     [d1, d2] = uncls_feaIms.shape[:2]
     clsIm_mn = np.zeros((d1, d2))  # Classified image
@@ -27,12 +29,12 @@ def twDTW_spring_subset_wise(uncls_feaIms, tsList, cropROI_mn, tsTrain, par_DTW,
         [pre_lb_col, dist_min_col] = twDTWS_col_wise(i, uncls_feaIms, cropROI_mn, Y_doy, tsTrain, par_DTW, K_value)
         clsIm_mn[:, i] = pre_lb_col.astype(int)
         distIm_mn[:, i] = dist_min_col
-        #print('The elapsed time for applying the twDTW_spring with crop mapping in the time series subset image: {0:.2f} second'.format(time.time() - tstart))
+        #print("The elapsed time for applying the twDTW_spring with crop mapping in the time series subset image: {0:.2f} second".format(time.time() - tstart))
     return clsIm_mn, distIm_mn
 
-#---------  datetime2doy ------------#
-# Set data with the select interval dates
+
 def datetime2doy(dt):
+    """Set data with the select interval dates"""
     a = dt[:]
     a2 = a[:]
     a2[:] = [(datetime.datetime(a[x].year, 1, 1) - datetime.timedelta(days=1)) for x in range(len(a))]
@@ -47,9 +49,8 @@ def datetime2doy_v2(dt, daysInterval):
 datetime2doy_v2_jit = numba.jit(datetime2doy_v2)
 
 
-#--------- twDTWS_col_wise    ------------#
-# Reorganized Dataset, Scale dataset, and ROI Efficiency
 def twDTWS_col_wise(col_id, uncls_feaIms, cropROI_mn, Y_doy, tsTrain, par_DTW, K_value):
+    """Reorganized Dataset, Scale dataset, and ROI Efficiency"""
     rows = uncls_feaIms.shape[0]
     pre_lb_col = np.zeros((rows, 1))
     dist_min_col = np.zeros((rows, 1))
@@ -60,19 +61,18 @@ def twDTWS_col_wise(col_id, uncls_feaIms, cropROI_mn, Y_doy, tsTrain, par_DTW, K
         ts_fea_scale[:, :, i] = scaleData(ts_fea[:, :, i])
 
     roi_ix, = np.where(cropROI_mn[:, col_id] > 0)
-    tsTest = {'fea': ts_fea_scale[:, :, roi_ix],
-              'DoY': ts_DoY[roi_ix, :]}
+    tsTest = {"fea": ts_fea_scale[:, :, roi_ix],
+              "DoY": ts_DoY[roi_ix, :]}
 
     # ---------------Classification
     # tstart = time.time()
     [pre_lb, dist_min] = KNN_twDTWS(K_value, tsTrain, tsTest, par_DTW)
     pre_lb_col[:, 0][roi_ix] = pre_lb  # pre_lb_col(roi_ix) = pre_lb;
     dist_min_col[:, 0][roi_ix] = dist_min
-    # print('Elapsed: %f detik' % ((time.time() - tstart)))
-    return pre_lb_col[:, 0], dist_min_col[:, 0]
+    # print("Elapsed: %f detik" % ((time.time() - tstart)))
+    return pre_lb_col[:, 0].astype(int), dist_min_col[:, 0]
 
-#---------    scaleData    ------------#
-# Scale Data function
+
 def scaleData(data):
     minimums = data.min(axis=0)
     ranges = (data.max(axis=0) - minimums)
@@ -81,39 +81,38 @@ def scaleData(data):
     scale_data = np.divide((data - np.tile((minimums), (len(data), 1))), np.tile((ranges), (len(data), 1)))
     return scale_data
 
-#--------------- KNN_twDTWS ---------------#
-# Reorganized Dataset, Scale dataset, and ROI Efficiency
-# KNN classification based on twDTWS distance
-# Data normalization, and feature selection should be performed beforehand.
-# We can also produce a posterior probability.
+
 def KNN_twDTWS(k, tsTrain, tsTest, par_DTW):
-    # tsTrain: refers to query sequence
-    # tsTest: refers to database sequence
-    # --------------------------------------------------------------------------
-    #                            Final Version
-    # --------------------------------------------------------------------------
+    """Reorganized Dataset, Scale dataset, and ROI Efficiency
+    KNN classification based on twDTWS distance
+    Data normalization, and feature selection should be performed beforehand.
+    We can also produce a posterior probability.
+    tsTrain: refers to query sequence
+    tsTest: refers to database sequence
+    """
+
     # 1. Retrieve variables
 
     # Train
 
-    tr_lb = tsTrain['lb'][0]  # 1D List: 1,2,3,... Has to be this format, otherwise unforeseen errors will occur.
-    tr_fea = tsTrain['fea'][0]  # 3D numpy array, 1-3 dims: Time series, Features, Observations
-    tr_DoY = tsTrain['DoY'][0]  # 2D numpy array, 1-2 dims: Time series, Observations
+    tr_lb = tsTrain["lb"][0]  # 1D List: 1,2,3,... Has to be this format, otherwise unforeseen errors will occur.
+    tr_fea = tsTrain["fea"][0]  # 3D numpy array, 1-3 dims: Time series, Features, Observations
+    tr_DoY = tsTrain["DoY"][0]  # 2D numpy array, 1-2 dims: Time series, Observations
     num_tr = len(tr_lb)
     num_cls = max(tr_lb)
 
     # Test
 
-    ts_fea = tsTest['fea']
-    ts_DoY = tsTest['DoY']
-    num_ts = tsTest['fea'].shape[2]
+    ts_fea = tsTest["fea"]
+    ts_DoY = tsTest["DoY"]
+    num_ts = tsTest["fea"].shape[2]
 
     # Params
 
-    alpha = par_DTW['alpha'][0][0][0]  # par_DTW.alpha;
-    theta = par_DTW['theta'][0][0][0]  # par_DTW.theta;
-    beta = par_DTW['beta'][0][0][0]  # par_DTW.beta;
-    epsilon = par_DTW['epsilon'][0][0][0]  # par_DTW.epsilon;
+    alpha = par_DTW["alpha"][0][0][0]  # par_DTW.alpha;
+    theta = par_DTW["theta"][0][0][0]  # par_DTW.theta;
+    beta = par_DTW["beta"][0][0][0]  # par_DTW.beta;
+    epsilon = par_DTW["epsilon"][0][0][0]  # par_DTW.epsilon;
 
     # 2. KNN process
 
@@ -123,26 +122,35 @@ def KNN_twDTWS(k, tsTrain, tsTest, par_DTW):
     cls_temp = np.tile(range(1, (num_cls[0] + 1)), (k))
 
     ### Parallelization of twDTW_Spring_li_v2 using joblib :
-    the_vals = Parallel(n_jobs=4)(delayed(par_KNN_twDTWS)(i, ts_fea, ts_DoY, tr_fea, tr_DoY,
+    with parallel_backend("loky", inner_max_num_threads=2):
+        the_vals = Parallel(n_jobs=16, max_nbytes=None)(delayed(par_KNN_twDTWS)(i, ts_fea, ts_DoY, tr_fea, tr_DoY,
                                                            alpha, beta, theta, epsilon, dist_min,
                                                            cls_temp, num_tr, k, tr_lb) for i in range(0, num_ts))
     a, b = zip(*the_vals);
-    # out={'dist_min': b, 'pre_lb':a};
+    # out={"dist_min": b, "pre_lb":a};
     return a, b
 
-#--------------- par_KNN_twDTWS ---------------#
-# Parallelization of KNN_twDTWS
+
 def par_KNN_twDTWS(i, ts_fea, ts_DoY, tr_fea, tr_DoY, alpha, beta, theta, epsilon, dist_min, cls_temp, num_tr, k, tr_lb):
-    pth = ''
-    the_path = np.frombuffer(pth, dtype='uint8')
+    """Parallelization of KNN_twDTWS"""
+    pth = ""
+    the_path = np.frombuffer(pth, dtype="uint8")
     dist_i = np.zeros((num_tr, 1))
     for j in range(num_tr):
-        dist_i[j, 0] = twDTW_Spring_li_v2_numba(tr_fea[:, :, j][~np.isnan(tr_DoY[:, j])],
-                                                tr_DoY[:, j][~np.isnan(tr_DoY[:, j])],
-                                                ts_fea[:, :, i],
-                                                ts_DoY[i, :],
-                                                alpha, beta, theta, epsilon, 1,
-                                                the_path) / len(tr_DoY[:, j][~np.isnan(tr_DoY[:, j])])
+        queryX = tr_fea[:, :, j][~np.isnan(tr_DoY[:, j])]
+        doyX = tr_DoY[:, j][~np.isnan(tr_DoY[:, j])]
+        temp_testY = ts_fea[:, :, i]
+        # make writeable, to prevent error (ValueError: assignment destination is read-only)
+        testY = deepcopy(temp_testY)
+        testY[np.isnan(testY)] = 0
+        doyY = ts_DoY[i, :]
+        alpha, beta, theta, epsilon = alpha, beta, theta, epsilon
+        par_unique = 1
+        par_path = the_path
+        len_tr_DoY = len(tr_DoY[:, j][~np.isnan(tr_DoY[:, j])])
+        twDTW = twDTW_Spring_li_v2_numba(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, par_unique, par_path)
+        dist_i[j, 0] = twDTW / len_tr_DoY
+
     dist_i_sort = np.sort(dist_i, axis=None)  # sort(dist_i)
     ix = np.argsort(dist_i, axis=None)
     if k > 1:
@@ -150,10 +158,10 @@ def par_KNN_twDTWS(i, ts_fea, ts_DoY, tr_fea, tr_DoY, alpha, beta, theta, epsilo
     else:
         return tr_lb[ix[0]][0], dist_i_sort[0]
 
-#--------------- twDTW_Spring_li_v2_numba ---------------#
-# twDTW_Spring using numba for optimization time execution
+
 @jit(nopython=True)
 def twDTW_Spring_li_v2_numba(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, par_unique, par_path):
+    """twDTW_Spring using numba for optimization time execution"""
     #     if(isinstance(queryX, list) and isinstance(testY, list)):
     #         queryX = queryX[:]
     #         testY =  testY[:]
@@ -161,13 +169,13 @@ def twDTW_Spring_li_v2_numba(queryX, doyX, testY, doyY, alpha, beta, theta, epsi
     #         N, fNX = queryX.shape
     #         M, fMX = testY.shape
     #         if N < fNX or M < fMX:
-    #             print('Make sure the signals are arranged column-wisely\n')
+    #             print("Make sure the signals are arranged column-wisely\n")
     #         if fNX != fMX:
-    #             print('ERRORR !..Two inputs have different dimensions\n')
+    #             print("ERRORR !..Two inputs have different dimensions\n")
     #         if N > M:
-    #              print('ERRORR !..Query sequence should not be longer than the test sequence\n')
+    #              print("ERRORR !..Query sequence should not be longer than the test sequence\n")
     #     else:
-    #         print('Only support vector or matrix inputs\n')
+    #         print("Only support vector or matrix inputs\n")
     # 2. SPRING DTW
     # 2.1 Define return variables
     N, fNX = queryX.shape
@@ -236,7 +244,7 @@ def twDTW_Spring_li_v2_numba(queryX, doyX, testY, doyY, alpha, beta, theta, epsi
                 if d_i >= d_min or s_i > T_e:
                     flag = flag + 1
             if flag == N:
-                # print('t=', t)
+                # print("t=", t)
                 opt_sub_seqs[t, :] = [d_min, T_s, T_e]
                 # print(opt_sub_seqs)
                 t = t + 1
@@ -248,7 +256,6 @@ def twDTW_Spring_li_v2_numba(queryX, doyX, testY, doyY, alpha, beta, theta, epsi
         d_m = D_now[N - 1]
         # print("d_m = {} - epsilon = {} - d_min = {}".format(d_m,epsilon, d_min))
         if d_m <= epsilon and d_m < d_min:
-            # print('true')
             d_min = d_m
             T_s = S_now[N - 1]
             T_e = j - 1  # t = j-1
@@ -264,9 +271,9 @@ def twDTW_Spring_li_v2_numba(queryX, doyX, testY, doyY, alpha, beta, theta, epsi
     dist_tail = np.inf
     if t > 0:
         T_e = np.max(opt_sub_seqs[:, 2]) + 2  # Here 3 refers to a neighsize, Neigh = 3;
-        # print('T_e=', T_e)
+        # print("T_e=", T_e)
         Tail_length = T_e - 1 + 0.3 * (N - 1)
-        # print('T_e=', T_e, '-Tail_length=',Tail_length)
+        # print("T_e=", T_e, "-Tail_length=",Tail_length)
     else:
         T_e = 0
         Tail_length = 0
@@ -279,7 +286,6 @@ def twDTW_Spring_li_v2_numba(queryX, doyX, testY, doyY, alpha, beta, theta, epsi
         dist_tail = np.min(Tail_min)
         T_place = np.argmin(Tail_min)
         if dist_tail <= epsilon:  # Tail includes a possible subsequence
-            # print('true')
             if T_place == 0:
                 t_s_Tail = S[N - 1, t_e_Tail]
                 dist_tail = D[N - 1, t_e_Tail]
@@ -298,7 +304,7 @@ def twDTW_Spring_li_v2_numba(queryX, doyX, testY, doyY, alpha, beta, theta, epsi
     #     unique_sub_seqs = []
     #     path = []
     #     if (par_unique > 0) and (par_path):
-    #         if 'optimal' in par_path:
+    #         if "optimal" in par_path:
     #             opt_sub_seqs = opt_sub_seqs[0,:]
     #             unique_sub_seqs = opt_sub_seqs[:]
     #         else:
@@ -306,7 +312,7 @@ def twDTW_Spring_li_v2_numba(queryX, doyX, testY, doyY, alpha, beta, theta, epsi
     #             unique_sub_seqs = opt_sub_seqs[ia,:]##### problem
     #         path = findPath_v2_jit(D,unique_sub_seqs,par_path)
     #     elif par_unique == 0 and (par_path):
-    #         if 'optimal' in par_path:
+    #         if "optimal" in par_path:
     #             opt_sub_seqs = opt_sub_seqs[0,:]
     #             unique_sub_seqs = opt_sub_seqs
     #         path = findPath_v2_jit(D,opt_sub_seqs,par_path)
@@ -348,32 +354,32 @@ def get_index(X, Y, Z, T):
     elif Z == T:
         return (2)
 
-#--------------- twDTW_Spring_li_v2---------------#
-# regular twDTW_Spring without numba for optimization time execution
+
 def twDTW_Spring_li_v2(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, par_unique, par_path):
-    #      Time weighted DTW with a SPRING version
-    # --------------------------------------------------------------------------
-    #  Input:
-    #        queryX: query sequence
-    #        testY: database/test sequence
-    #        doyX: datetime of X,
-    #        doyY: datetime of Y,
-    #        alpha, beta: parameters for weighted function [-0.1,100 by default]
-    #        theta: weight of time constraints, [0.5 by default]
-    #        epsilon: cost threshold [It equals the minimum distance when it is set to NULL]
-    #        par_path: par_path {[],'optimal','all',''}
-    #        par_unique: remove repeated, larger matches
-    #  Output:
-    #        D: accumlated cost matrix
-    #        S: position matrix
-    #        matches: [sorted] matches of subsequence
-    #        matches_refined: refined_matches
-    #        path: alignment of EITHER optimal subsequnce OR all subsequence
-    #  Reference:
-    #  [1] M?ller, Meinard. "Dynamic time warping." Information retrieval for music and motion (2007): 69-84.
-    #  [2] Sakurai, Yasushi, Christos Faloutsos, and Masashi Yamamuro. "Stream monitoring under the time warping distance." Data Engineering, 2007. ICDE 2007. IEEE 23rd International Conference on. IEEE, 2007.]
-    #  [2] trackback.m, inspired by Matlab
-    #  Copyright@ Mengmeng Li, ITC, University of Twente, 2018-02-20
+    """regular twDTW_Spring without numba for optimization time execution
+         Time weighted DTW with a SPRING version
+                --------------------------------------------------------------------------
+                 Input:
+                       queryX: query sequence
+                       testY: database/test sequence
+                       doyX: datetime of X,
+                       doyY: datetime of Y,
+                       alpha, beta: parameters for weighted function [-0.1,100 by default]
+                       theta: weight of time constraints, [0.5 by default]
+                       epsilon: cost threshold [It equals the minimum distance when it is set to NULL]
+                       par_path: par_path {[],"optimal","all",""}
+                       par_unique: remove repeated, larger matches
+                 Output:
+                       D: accumlated cost matrix
+                       S: position matrix
+                       matches: [sorted] matches of subsequence
+                       matches_refined: refined_matches
+                       path: alignment of EITHER optimal subsequnce OR all subsequence
+                 Reference:
+                 [1] M?ller, Meinard. "Dynamic time warping." Information retrieval for music and motion (2007): 69-84.
+                 [2] Sakurai, Yasushi, Christos Faloutsos, and Masashi Yamamuro. "Stream monitoring under the time warping distance." Data Engineering, 2007. ICDE 2007. IEEE 23rd International Conference on. IEEE, 2007.]
+                 [2] trackback.m, inspired by Matlab
+                 Copyright@ Mengmeng Li, ITC, University of Twente, 2018-02-20"""
     # --------------------------------------------------------------------------
     #                        Final version v2
     # --------------------------------------------------------------------------
@@ -385,13 +391,13 @@ def twDTW_Spring_li_v2(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, p
         N, fNX = queryX.shape
         M, fMX = testY.shape
         if N < fNX or M < fMX:
-            print('Make sure the signals are arranged column-wisely\n')
+            print("Make sure the signals are arranged column-wisely\n")
         if fNX != fMX:
-            print('ERRORR !..Two inputs have different dimensions\n')
+            print("ERRORR !..Two inputs have different dimensions\n")
         if N > M:
-            print('ERRORR !..Query sequence should not be longer than the test sequence\n')
+            print("ERRORR !..Query sequence should not be longer than the test sequence\n")
     else:
-        print('Only support vector or matrix inputs\n')
+        print("Only support vector or matrix inputs\n")
     #     # 2. SPRING DTW
     # 2.1 Define return variables
     N, fNX = queryX.shape
@@ -426,7 +432,7 @@ def twDTW_Spring_li_v2(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, p
             D[i, j] = oost + bestMin
             ############## switch-case implementation
             key_S = {0: S[i - 1, j], 1: S[i, j - 1], 2: S[i - 1, j - 1]}
-            S[i, j] = key_S.get(place, 'default')
+            S[i, j] = key_S.get(place, "default")
 
         # The algorithm reports the subsequences after confirming that the
         # current optimal subsequences cannot be replaced by the upcoming
@@ -446,7 +452,7 @@ def twDTW_Spring_li_v2(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, p
                 if d_i >= d_min or s_i > T_e:
                     flag = flag + 1
             if flag == N:
-                # print('t=', t)
+                # print("t=", t)
                 opt_sub_seqs[t, :] = [d_min, T_s, T_e]
                 # print(opt_sub_seqs)
                 t = t + 1
@@ -458,7 +464,7 @@ def twDTW_Spring_li_v2(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, p
         d_m = D_now[N - 1]
         # print("d_m = {} - epsilon = {} - d_min = {}".format(d_m,epsilon, d_min))
         if d_m <= epsilon and d_m < d_min:
-            # print('true')
+            # print("true")
             d_min = d_m
             T_s = S_now[N - 1]
             T_e = j - 1  # t = j-1
@@ -476,9 +482,9 @@ def twDTW_Spring_li_v2(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, p
     dist_tail = np.inf
     if t > 0:
         T_e = max(opt_sub_seqs[:, 2]) + 2  # Here 3 refers to a neighsize, Neigh = 3;
-        # print('T_e=', T_e)
+        # print("T_e=", T_e)
         Tail_length = T_e - 1 + 0.3 * (N - 1)
-        # print('T_e=', T_e, '-Tail_length=',Tail_length)
+        # print("T_e=", T_e, "-Tail_length=",Tail_length)
     else:
         T_e = 0
         Tail_length = 0
@@ -492,7 +498,7 @@ def twDTW_Spring_li_v2(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, p
         dist_tail = min([Tail_min, Tail[len(Tail) - 1]])
         T_place = [Tail_min, Tail[len(Tail) - 1]].index(min([Tail_min, Tail[len(Tail) - 1]]))
         if dist_tail <= epsilon:  # Tail includes a possible subsequence
-            # print('true')
+            # print("true")
             if T_place == 0:
                 t_s_Tail = S[N - 1, t_e_Tail]
                 dist_tail = D[N - 1, t_e_Tail]
@@ -509,7 +515,7 @@ def twDTW_Spring_li_v2(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, p
     unique_sub_seqs = []
     path = []
     if (par_unique > 0) and (par_path):
-        if 'optimal' in par_path:
+        if "optimal" in par_path:
             opt_sub_seqs = opt_sub_seqs[0, :]
             unique_sub_seqs = opt_sub_seqs[:]
         else:
@@ -517,7 +523,7 @@ def twDTW_Spring_li_v2(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, p
             unique_sub_seqs = opt_sub_seqs[ia, :]  ##### problem
         path = findPath_v2_jit(D, unique_sub_seqs, par_path)
     elif par_unique == 0 and (par_path):
-        if 'optimal' in par_path:
+        if "optimal" in par_path:
             opt_sub_seqs = opt_sub_seqs[0, :]
             unique_sub_seqs = opt_sub_seqs
         path = findPath_v2_jit(D, opt_sub_seqs, par_path)
@@ -526,26 +532,27 @@ def twDTW_Spring_li_v2(queryX, doyX, testY, doyY, alpha, beta, theta, epsilon, p
         unique_sub_seqs = opt_sub_seqs[ia, :]  ##### problem
     return dist
 
-#--------------- findPath_v2 ---------------------#
-# Function to find optimum path in
+
 def findPath_v2(dMat, matches, par_path):
-    # This function finds the warping path of DTW using trace back strategy
-    # Input:
-    #       dMat: accumulated cost matrix
-    #       matches: subsequence obtained by SPRING DTW
-    #       par = 'optimal': the optimal path
-    #       par = 'all': all the paths
+    """This function finds the warping path of DTW using trace back strategy
+    Function to find optimum path in
+    Input:
+          dMat: accumulated cost matrix
+          matches: subsequence obtained by SPRING DTW
+          par = "optimal": the optimal path
+          par = "all": all the paths
+    """
     path = dict()
     num_m = matches.shape[0]
     if num_m < 1:
         path = dict()
         return path
-    if 'optimal' in par_path:
+    if "optimal" in par_path:
         num_p = 1
-    elif 'all' in par_path:
+    elif "all" in par_path:
         num_p = num_m
     else:
-        print('Parameter setting for FIND PATH is not correct!')
+        print("Parameter setting for FIND PATH is not correct!")
     # pre-allocate to the maximum warping path size.
     [M, N] = dMat.shape
     ix = np.zeros((M + N))
@@ -570,7 +577,7 @@ def findPath_v2(dMat, matches, par_path):
                 place = [dMat[i - 1, j], dMat[i, j - 1], dMat[i - 1, j - 1]].index(
                     min([dMat[i - 1, j], dMat[i, j - 1], dMat[i - 1, j - 1]]))
                 key = {0: [i - 1, j], 1: [i, j - 1], 2: [i - 1, j - 1]}
-                i, j = key.get(place, 'default')
+                i, j = key.get(place, "default")
             k = k + 1
             ix[k] = i
             iy[k] = j
@@ -582,4 +589,6 @@ def findPath_v2(dMat, matches, par_path):
         ix[:] = 0
         iy[:] = 0
     return path
+
+
 findPath_v2_jit = numba.jit(findPath_v2)
