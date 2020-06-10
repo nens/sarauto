@@ -13,7 +13,7 @@ home = os.getcwd()
 xml_file = glob.glob(home+config.xmlpath+"*.XML")
 tree = etree.parse(xml_file[0])
 elem = tree.findall(".//node")
-sentinel_path = home + config.sentineldirpath
+isFile = home + config.sentineldirpath
 indx = 1
 
 ## Get SAR from selected Date
@@ -28,21 +28,18 @@ start = datetime.datetime.strptime(date1, '%Y%m%d')
 end = datetime.datetime.strptime(date2, '%Y%m%d')
 logger.info('Get Sentinel SAR Data from selected Date from ' +start.strftime('%d%b%Y') +' to '+end.strftime('%d%b%Y'))
 step = datetime.timedelta(days=12)
-sentinel_dates = []
-sentinel_dates.append(start.strftime('%Y%m%d'))
+list_date = []
+list_date.append(start.strftime('%Y%m%d'))
 while start <= end:
     start += step
-    sentinel_dates.append(start.strftime('%Y%m%d'))
+    list_date.append(start.strftime('%Y%m%d'))
 
-file_list = os.listdir(sentinel_path)
-selected_files = []
-for sentinel_date in sentinel_dates:
-    if any(sentinel_date in file for file in file_list):
-        selected_file = [file for file in file_list if sentinel_date in file]
-        selected_files.append(selected_file[0])
-selected_files = os.listdir(sentinel_path)
-logger.info("selected_files")
-logger.info(selected_files)
+file_list = os.listdir(isFile)
+selected_file = []
+for ss in list_date:
+    if any(ss in s for s in file_list):
+        rr = [s for s in file_list if ss in s]
+        selected_file.append(rr[0])
 
 name=[]
 GPF_ops = []
@@ -60,17 +57,16 @@ xml_dir = home+config.xmlprocesspath
 if not os.path.exists(xml_dir):
     os.makedirs(xml_dir)
 
-dim_dir = home + config.preprocess_result + nameOP + '/'
+dim_dir = home + config.praprocess_result + nameOP + '/'
 if not os.path.exists(dim_dir):
     os.makedirs(dim_dir)
 
-logger.info('Start Preprocessing GPF using GPT and XML..')
+logger.info('Start Praprocessing GPF using GPT and XML..')
 logger.info('GPF Operator: '+' - '.join(GPF_ops))
-
-for selected_file in selected_files:
-    (sarfileshortname, extension)  = os.path.splitext(selected_file)
-    read_data = sentinel_path + selected_file
-    write_data = dim_dir + sarfileshortname+'.dim'
+for d_file in selected_file:
+    (sarfileshortname, extension)  = os.path.splitext(d_file)
+    read_data = isFile+d_file
+    write_data = dim_dir+sarfileshortname+'.dim'
     for entry in elem:
         try:
             if (entry.attrib["id"]=="Read"):
@@ -79,10 +75,10 @@ for selected_file in selected_files:
                 entry[2][0].text = write_data
         except:
             continue
-    tree.write(xml_dir+'sar_preprocess_'+str(indx)+'.xml')
+    tree.write(xml_dir+'sar_praproses_'+str(indx)+'.xml')
     indx = indx + 1
 logger.info('Make XML file for all Graphic Processing Framework')
 ### Write update folder parproces to text file
-f = open(os.getcwd() + "/update_config/update_preprocess.txt", 'w')
+f = open(os.getcwd() + "/update_config/update_praprocess.txt", 'w')
 f.write(nameOP)
 f.close()

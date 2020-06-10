@@ -38,7 +38,7 @@ for i, name in enumerate(Operators_Result):
     else:
         nameOP = nameOP + '_' + opname
 
-dim_dir = home + config.preprocess_result + nameOP + '/'
+dim_dir = home + config.praprocess_result + nameOP + '/'
 if not os.path.exists(dim_dir):
     os.makedirs(dim_dir)
 
@@ -66,8 +66,8 @@ for ss in list_date:
         rr = [s for s in file_list if ss in s]
         selected_file.append(rr[0])
 
-# Preprocessing Start
-logger.info('Start Preprocessing GPF using snappy..')
+# Praprocessing Start
+logger.info('Start Praprocessing GPF using snappy..')
 logger.info('GPF Operator: '+' - '.join(Operators_Result).replace('\n', ''))
 
 select_file = [entry for entry in selected_file if entry.endswith(".zip") and 'S1A' in entry]
@@ -106,6 +106,6 @@ for xi in range(0, len(select_file)):
         System.gc()
 
 ### Write update folder parproces to text file
-f = open(os.getcwd() + "/update_config/update_preprocess.txt", 'w')
+f = open(os.getcwd() + "/update_config/update_praprocess.txt", 'w')
 f.write(nameOP)
 f.close()
