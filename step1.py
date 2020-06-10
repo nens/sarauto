@@ -97,19 +97,19 @@ username = config.username  # ask ITC for the username and password
 password = config.password
 
 # # Get info product
-# api = SentinelAPI(username, password)  # fill with SMARTSeeds user and password
+api = SentinelAPI(username, password)  # fill with SMARTSeeds user and password
 
-# footprint = geojson_to_wkt(input_geojson)
-# products = api.query(footprint,
-#                      producttype=type_sar,
-#                      orbitdirection=orbit,
-#                      date="[{0} TO {1}]".format(start_date, end_date)
-#                      )
+footprint = geojson_to_wkt(input_geojson)
+products = api.query(footprint,
+                     producttype=type_sar,
+                     orbitdirection=orbit,
+                     date="[{0} TO {1}]".format(start_date, end_date)
+                     )
 dirpath = cwd + config.sentineldirpath
 
 if not os.path.exists(dirpath):
     os.makedirs(dirpath)
-# api.download_all(products, directory_path=dirpath, checksum=True)
+api.download_all(products, directory_path=dirpath, checksum=True)
 
 zipfiles = glob("{}*.zip".format(dirpath))
 
@@ -182,30 +182,6 @@ f = open(os.getcwd() + "/update_config/update_date.txt", "w")
 f.write(sentinel_file_dates[0] + "\n")
 f.write(sentinel_file_dates[-1] + "\n")
 f.close()
-
-# # Start Download
-# for entry in range(0, len(df)):
-#     # The uuid element allows to create the path to the file
-#     uuid_element = df["uuid"][entry]
-#     id_sar = df["identifier"][entry]
-#     sentinel_link = df["link"][entry]
-
-#     # Destinationpath with filename where download to be stored
-#     destinationpath = dirpath + id_sar + ".zip"
-
-#     if os.path.exists(destinationpath):
-#         logger.info(destinationpath + " already downloaded")
-#         # print(destinationpath + " already downloaded")
-#     else:
-#         # Download file and read
-#         try:
-#             dict = api.download(df["uuid"][entry], directory_path=dirpath, checksum=True)
-#             logger.info(dict)
-#             logger.info("Successfully downloaded" + id_sar + "in to" + destinationpath)
-#         except:
-#             logger.warning("error connection!.... Download Interrupted!")
-#             print "error connection!.... Download Interrupted!"
-#             time.sleep(1)
 
 # delete all incomplete file
 for item in os.listdir(dirpath):
