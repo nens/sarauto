@@ -5,8 +5,8 @@ import logging
 
 logger = logging.getLogger()
 
-isFile = os.getcwd()+config.xmlprocesspathsubset
-listOfFiles=os.listdir(isFile)
+xml_process_subset_path = os.getcwd()+config.xmlprocesspathsubset
+listOfFiles=os.listdir(xml_process_subset_path)
 
 # Function to check File Dim exist or not in directory
 def get_xml_name(elem):
@@ -18,7 +18,7 @@ def get_xml_name(elem):
             pass
 
 for d_file in listOfFiles:
-    filepath = isFile + d_file
+    filepath = xml_process_subset_path + d_file
     tree = etree.parse(filepath)
     elem = tree.findall(".//node")
     dim_name = get_xml_name(elem)
