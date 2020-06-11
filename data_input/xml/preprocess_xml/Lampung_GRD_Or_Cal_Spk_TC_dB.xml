@@ -4,7 +4,7 @@
     <operator>Read</operator>
     <sources/>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <file>F:\S1_GRD_Java\S1A_GRD_Orbit_120_23117_D_1\S1A_IW_GRDH_1SDV_20170530T224129_20170530T224153_016817_01BF4B_4F79.zip</file>
+      <file>F:\Processed_S1_SLC_Java20180311\Processed_Orbit_171_19493_A_2\GRD_Lampung_subset\S1A_IW_SLC__1SDV_20170323T112319_20170323T112347_015818_01A0E9_018B.dim</file>
     </parameters>
   </node>
   <node id="Apply-Orbit-File">
@@ -15,7 +15,7 @@
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <orbitType>Sentinel Precise (Auto Download)</orbitType>
       <polyDegree>3</polyDegree>
-      <continueOnFail>true</continueOnFail>
+      <continueOnFail>false</continueOnFail>
     </parameters>
   </node>
   <node id="Calibration">
@@ -31,16 +31,29 @@
       <outputImageScaleInDb>false</outputImageScaleInDb>
       <createGammaBand>false</createGammaBand>
       <createBetaBand>false</createBetaBand>
-      <selectedPolarisations/>
+      <selectedPolarisations>VH,VV</selectedPolarisations>
       <outputSigmaBand>true</outputSigmaBand>
       <outputGammaBand>false</outputGammaBand>
       <outputBetaBand>false</outputBetaBand>
     </parameters>
   </node>
+  <node id="Multilook">
+    <operator>Multilook</operator>
+    <sources>
+      <sourceProduct refid="Calibration"/>
+    </sources>
+    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
+      <sourceBands/>
+      <nRgLooks>2</nRgLooks>
+      <nAzLooks>2</nAzLooks>
+      <outputIntensity>false</outputIntensity>
+      <grSquarePixel>true</grSquarePixel>
+    </parameters>
+  </node>
   <node id="Speckle-Filter">
     <operator>Speckle-Filter</operator>
     <sources>
-      <sourceProduct refid="Calibration"/>
+      <sourceProduct refid="Multilook"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -71,27 +84,16 @@
       <demResamplingMethod>BILINEAR_INTERPOLATION</demResamplingMethod>
       <imgResamplingMethod>BILINEAR_INTERPOLATION</imgResamplingMethod>
       <pixelSpacingInMeter>10.0</pixelSpacingInMeter>
-      <pixelSpacingInDegree>8.983152841195215E-5</pixelSpacingInDegree>
-      <mapProjection>PROJCS[&quot;WGS 84 / UTM zone 48S&quot;, &#xd;
-  GEOGCS[&quot;WGS 84&quot;, &#xd;
-    DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
-      SPHEROID[&quot;WGS 84&quot;, 6378137.0, 298.257223563, AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], &#xd;
-      AUTHORITY[&quot;EPSG&quot;,&quot;6326&quot;]], &#xd;
-    PRIMEM[&quot;Greenwich&quot;, 0.0, AUTHORITY[&quot;EPSG&quot;,&quot;8901&quot;]], &#xd;
-    UNIT[&quot;degree&quot;, 0.017453292519943295], &#xd;
-    AXIS[&quot;Geodetic longitude&quot;, EAST], &#xd;
-    AXIS[&quot;Geodetic latitude&quot;, NORTH], &#xd;
-    AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]], &#xd;
-  PROJECTION[&quot;Transverse_Mercator&quot;, AUTHORITY[&quot;EPSG&quot;,&quot;9807&quot;]], &#xd;
-  PARAMETER[&quot;central_meridian&quot;, 105.0], &#xd;
-  PARAMETER[&quot;latitude_of_origin&quot;, 0.0], &#xd;
-  PARAMETER[&quot;scale_factor&quot;, 0.9996], &#xd;
-  PARAMETER[&quot;false_easting&quot;, 500000.0], &#xd;
-  PARAMETER[&quot;false_northing&quot;, 10000000.0], &#xd;
-  UNIT[&quot;m&quot;, 1.0], &#xd;
-  AXIS[&quot;Easting&quot;, EAST], &#xd;
-  AXIS[&quot;Northing&quot;, NORTH], &#xd;
-  AUTHORITY[&quot;EPSG&quot;,&quot;32748&quot;]]</mapProjection>
+      <pixelSpacingInDegree>1.796630568239043E-4</pixelSpacingInDegree>
+      <mapProjection>GEOGCS[&quot;WGS 84&quot;, &#xd;
+  DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
+    SPHEROID[&quot;WGS 84&quot;, 6378137.0, 298.257223563, AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], &#xd;
+    AUTHORITY[&quot;EPSG&quot;,&quot;6326&quot;]], &#xd;
+  PRIMEM[&quot;Greenwich&quot;, 0.0, AUTHORITY[&quot;EPSG&quot;,&quot;8901&quot;]], &#xd;
+  UNIT[&quot;degree&quot;, 0.017453292519943295], &#xd;
+  AXIS[&quot;Geodetic longitude&quot;, EAST], &#xd;
+  AXIS[&quot;Geodetic latitude&quot;, NORTH], &#xd;
+  AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]]</mapProjection>
       <alignToStandardGrid>false</alignToStandardGrid>
       <standardGridOriginX>0.0</standardGridOriginX>
       <standardGridOriginY>0.0</standardGridOriginY>
@@ -128,32 +130,35 @@
       <sourceProduct refid="LinearToFromdB"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <file>G:\S1_GRD_Java\Processed_S1A_GRD_Orbit_3_19325_D_10\Or_Cal_Spk_TC_dB_319325D10\S1A_IW_GRDH_1SDV_20170416T220907_20170416T220932_016175_01ABAA_74F6_Orb_Cal_Spk_TC_dB.dim</file>
+      <file>F:\Processed_S1_SLC_Java20180311\Processed_Orbit_171_19493_A_2\Intensity_Lampung_subset_48S\S1A_IW_GRDH_1SDV_20170416T220906_20170416T220933_016175_01ABAA_43C3_Cal_Deb_ML_Spk_SRGR_Orb_Cal_ML_Spk_TC_dB.dim</file>
       <formatName>BEAM-DIMAP</formatName>
     </parameters>
   </node>
   <applicationData id="Presentation">
     <Description/>
     <node id="Read">
-            <displayPosition x="31.0" y="7.0"/>
+            <displayPosition x="20.0" y="14.0"/>
     </node>
     <node id="Apply-Orbit-File">
-      <displayPosition x="135.0" y="8.0"/>
+      <displayPosition x="129.0" y="15.0"/>
     </node>
     <node id="Calibration">
-      <displayPosition x="266.0" y="8.0"/>
+      <displayPosition x="272.0" y="15.0"/>
+    </node>
+    <node id="Multilook">
+      <displayPosition x="378.0" y="15.0"/>
     </node>
     <node id="Speckle-Filter">
-      <displayPosition x="388.0" y="9.0"/>
+      <displayPosition x="369.0" y="81.0"/>
     </node>
     <node id="Terrain-Correction">
-      <displayPosition x="375.0" y="68.0"/>
+      <displayPosition x="198.0" y="84.0"/>
     </node>
     <node id="LinearToFromdB">
-      <displayPosition x="32.0" y="69.0"/>
+      <displayPosition x="22.0" y="83.0"/>
     </node>
     <node id="Write">
-            <displayPosition x="53.0" y="147.0"/>
+            <displayPosition x="39.0" y="159.0"/>
     </node>
   </applicationData>
 </graph>
