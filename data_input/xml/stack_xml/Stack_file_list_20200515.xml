@@ -10,13 +10,13 @@
   <node id="CreateStack">
     <operator>CreateStack</operator>
     <sources>
-      <sourceProduct.2 refid="ProductSet-Reader"/>
+      <sourceProduct.3 refid="ProductSet-Reader"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <masterBands/>
       <sourceBands/>
       <resamplingType>NEAREST_NEIGHBOUR</resamplingType>
-      <extent>Master</extent>
+      <extent>Minimum</extent>
       <initialOffsetMethod>Product Geolocation</initialOffsetMethod>
     </parameters>
   </node>
