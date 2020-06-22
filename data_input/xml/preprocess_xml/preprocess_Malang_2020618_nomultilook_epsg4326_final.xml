@@ -37,23 +37,10 @@
       <outputBetaBand>false</outputBetaBand>
     </parameters>
   </node>
-  <node id="Multilook">
-    <operator>Multilook</operator>
-    <sources>
-      <sourceProduct refid="Calibration"/>
-    </sources>
-    <parameters class="com.bc.ceres.binding.dom.XppDomElement">
-      <sourceBands/>
-      <nRgLooks>2</nRgLooks>
-      <nAzLooks>2</nAzLooks>
-      <outputIntensity>false</outputIntensity>
-      <grSquarePixel>true</grSquarePixel>
-    </parameters>
-  </node>
   <node id="Speckle-Filter">
     <operator>Speckle-Filter</operator>
     <sources>
-      <sourceProduct refid="Multilook"/>
+      <sourceProduct refid="Calibration"/>
     </sources>
     <parameters class="com.bc.ceres.binding.dom.XppDomElement">
       <sourceBands/>
@@ -84,7 +71,7 @@
       <demResamplingMethod>BILINEAR_INTERPOLATION</demResamplingMethod>
       <imgResamplingMethod>BILINEAR_INTERPOLATION</imgResamplingMethod>
       <pixelSpacingInMeter>10.0</pixelSpacingInMeter>
-      <pixelSpacingInDegree>1.796630568239043E-4</pixelSpacingInDegree>
+      <pixelSpacingInDegree>8.983152841195215E-5</pixelSpacingInDegree>
       <mapProjection>GEOGCS[&quot;WGS 84&quot;, &#xd;
   DATUM[&quot;World Geodetic System 1984&quot;, &#xd;
     SPHEROID[&quot;WGS 84&quot;, 6378137.0, 298.257223563, AUTHORITY[&quot;EPSG&quot;,&quot;7030&quot;]], &#xd;
@@ -137,28 +124,25 @@
   <applicationData id="Presentation">
     <Description/>
     <node id="Read">
-            <displayPosition x="20.0" y="14.0"/>
+            <displayPosition x="28.0" y="139.0"/>
     </node>
     <node id="Apply-Orbit-File">
-      <displayPosition x="129.0" y="15.0"/>
+      <displayPosition x="136.0" y="140.0"/>
     </node>
     <node id="Calibration">
-      <displayPosition x="272.0" y="15.0"/>
-    </node>
-    <node id="Multilook">
-      <displayPosition x="378.0" y="15.0"/>
+      <displayPosition x="273.0" y="140.0"/>
     </node>
     <node id="Speckle-Filter">
-      <displayPosition x="369.0" y="81.0"/>
+      <displayPosition x="402.0" y="139.0"/>
     </node>
     <node id="Terrain-Correction">
-      <displayPosition x="198.0" y="84.0"/>
+      <displayPosition x="546.0" y="140.0"/>
     </node>
     <node id="LinearToFromdB">
-      <displayPosition x="22.0" y="83.0"/>
+      <displayPosition x="714.0" y="140.0"/>
     </node>
     <node id="Write">
-            <displayPosition x="39.0" y="159.0"/>
+            <displayPosition x="735.0" y="212.0"/>
     </node>
   </applicationData>
 </graph>
