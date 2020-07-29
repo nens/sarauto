@@ -7,3 +7,4 @@ logfile/
 sentineldata/
 update_config/
 *.pyc
+.venv
