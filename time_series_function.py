@@ -122,8 +122,9 @@ def KNN_twDTWS(k, tsTrain, tsTest, par_DTW):
     cls_temp = np.tile(range(1, (num_cls[0] + 1)), (k))
 
     ### Parallelization of twDTW_Spring_li_v2 using joblib :
-    with parallel_backend("loky", inner_max_num_threads=2):
-        the_vals = Parallel(n_jobs=16, max_nbytes=None)(delayed(par_KNN_twDTWS)(i, ts_fea, ts_DoY, tr_fea, tr_DoY,
+    # with parallel_backend("loky", inner_max_num_threads=2):
+    with parallel_backend('threading', n_jobs=32):
+        the_vals = Parallel(n_jobs=32, max_nbytes=None)(delayed(par_KNN_twDTWS)(i, ts_fea, ts_DoY, tr_fea, tr_DoY,
                                                            alpha, beta, theta, epsilon, dist_min,
                                                            cls_temp, num_tr, k, tr_lb) for i in range(0, num_ts))
     a, b = zip(*the_vals);
