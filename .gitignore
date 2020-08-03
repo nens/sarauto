@@ -1,5 +1,6 @@
 config.py
-
+sentineldata_all/
+sentineldata_processing/
 data_output/
 data_input/geojson/
 data_input/xml/subset_xml/Subset_aoi.XML
@@ -7,3 +8,6 @@ logfile/
 sentineldata/
 update_config/
 *.pyc
+venv/
+.idea/
+*.geojson
