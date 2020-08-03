@@ -19,7 +19,7 @@ logger = logging.getLogger()
 
 warnings.filterwarnings("ignore")
 home = os.getcwd()
-name_of_area= config.name_of_area
+name_of_area = config.name_of_area
 
 ###---------------- Main Function ------------------------###
 def main():
@@ -119,98 +119,104 @@ def main():
     print("Read and classify pixel values of time series images, always conduct block-based processing")
     [block_row_range, block_col_range, num_r2, num_c2] = blocking_im(block_size, R, C)
     rowcol = (R, C)
-    cropMap = np.zeros(rowcol)
-    minDist = np.zeros(rowcol)
 
     #.3 Read image features for each blocks -----------------------------Progressbar using tqdm
     logger.info("Read image features for each blocks")
     print("Read image features for each blocks")
     for i in range(0, num_r2):
         for j in range(0, num_c2):
-			logger.info("Obtain subset image for block row: {}/{} & column: {}/{}".format(i+1, num_r2, j+1, num_c2))
-			logger.info("Start classification in time series subset image")
-			print("Obtain subset image for block row: {}/{} & column: {}/{}".format(i+1, num_r2, j+1, num_c2))
-			print("Start classification in time series subset image")
-			tstart = time.time()
-			Row_range = block_row_range[i, j]
-			Col_range = block_col_range[i, j]
-			fea_im_ij = obtain_fea_im_subset(Row_range, Col_range, tsList, ts_stack_foler, fC_hdr, fC_img, bandName)
-			if doFilter > 0:  # applying savgol filter
-			    logger.info("applying temporal filter using savgol filter")
-			    fea_im_ij = temporal_filter_jit(fea_im_ij)
-			    logger.info("temporal filtered fea_im_ij")
-			    # logger.info(fea_im_ij)
-			if cropROI.any():
-			    cropROI_ij = cropROI[(Row_range[0] - 1):Row_range[1], (Col_range[0] - 1):Col_range[1]]
-			else:
-			    cropROI_ij = np.ones((Row_range[1] - Row_range[0] + 1, Col_range[1] - Col_range[0] + 1))
+            tif_dir = home + config.dtw_tif_save_dir
+            geotiff_name = "vegetables_row_{}_col_{}".format(i, j)
+            file_name = "{}{}_{}_{}.geotiff".format(tif_dir, name_of_area, config.dtw_save_name, geotiff_name)
+            if not os.path.exists(file_name):
+                logger.info("Obtain subset image for tile {} block row: {}/{} & column: {}/{}".format(name_of_area, i+1, num_r2, j+1, num_c2))
+                logger.info("Start classification in time series subset image")
+                print("Obtain subset image for tile {} block row: {}/{} & column: {}/{}".format(name_of_area, i+1, num_r2, j+1, num_c2))
+                print("Start classification in time series subset image")
+               
+                cropMap = np.zeros(rowcol)
+                minDist = np.zeros(rowcol)
+                tstart = time.time()
+                Row_range = block_row_range[i, j]
+                Col_range = block_col_range[i, j]
+                fea_im_ij = obtain_fea_im_subset(Row_range, Col_range, tsList, ts_stack_foler, fC_hdr, fC_img, bandName)
+                if doFilter > 0:  # applying savgol filter
+                    logger.info("applying temporal filter using savgol filter")
+                    fea_im_ij = temporal_filter_jit(fea_im_ij)
+                    logger.info("temporal filtered fea_im_ij")
+                    # logger.info(fea_im_ij)
+                if cropROI.any():
+                    cropROI_ij = cropROI[(Row_range[0] - 1):Row_range[1], (Col_range[0] - 1):Col_range[1]]
+                else:
+                    cropROI_ij = np.ones((Row_range[1] - Row_range[0] + 1, Col_range[1] - Col_range[0] + 1))
 
-			# 4.2 Classification
-			logger.info("Start classification for each block")
-			[clsIm_ij, distIm_ij] = twDTW_spring_subset_wise(fea_im_ij, tsList, cropROI_ij, tsTrain, par_DTW, daysInterval, K_value)
-			cropMap[Row_range[0] - 1:Row_range[1], Col_range[0] - 1:Col_range[1]] = clsIm_ij
-			minDist[Row_range[0] - 1:Row_range[1], Col_range[0] - 1:Col_range[1]] = distIm_ij
-			cropMap = cropMap.astype(int)
-			logger.info("Classification for blocks with row:{}, and column:{} is done!".format(i+1,j+1))
-			logger.info("The elapsed time is {0:.2f} minutes".format((time.time() - tstart)/60))
-			print("Classification for blocks with row:{}, and column:{} is done!".format(i+1,j+1))
-			print("The elapsed time is {0:.2f} minutes".format((time.time() - tstart) / 60))
-			logger.info("End of Classification")
-			###----------- End of Classification-----------###
+                # 4.2 Classification
+                logger.info("Start classification for each block")
+                [clsIm_ij, distIm_ij] = twDTW_spring_subset_wise(fea_im_ij, tsList, cropROI_ij, tsTrain, par_DTW, daysInterval, K_value)
+                cropMap[Row_range[0] - 1:Row_range[1], Col_range[0] - 1:Col_range[1]] = clsIm_ij
+                minDist[Row_range[0] - 1:Row_range[1], Col_range[0] - 1:Col_range[1]] = distIm_ij
+                cropMap = cropMap.astype(int)
+                logger.info("Classification for blocks with row:{}, and column:{} is done!".format(i+1,j+1))
+                logger.info("The elapsed time is {0:.2f} minutes".format((time.time() - tstart)/60))
+                print("Classification for blocks with row:{}, and column:{} is done!".format(i+1,j+1))
+                print("The elapsed time is {0:.2f} minutes".format((time.time() - tstart) / 60))
+                logger.info("End of Classification")
+                ###----------- End of Classification-----------###
 
-			###----------- Save to MAT_FILES --------------###
-			print("Save to MAT File...")
-			# Check Directory
-			mat_dir = home + config.dtw_mat_save_dir
-			if not os.path.exists(mat_dir):
-			    os.makedirs(mat_dir)
-			# Create a dictionary for save MAT-Files
-			mat_save_file = {}
-			mat_save_file["cropMap"] = cropMap
-			mat_save_file["minDist"] = minDist
-			# Saving...
-			savemat(mat_dir + name_of_area +"_"+config.dtw_save_name+".mat", mat_save_file)
-			logger.info("Saved successfully to MAT File")
-			###################################################
+                ###----------- Save to MAT_FILES --------------###
+                print("Save to MAT File...")
+                # Check Directory
+                mat_dir = home + config.dtw_mat_save_dir
+                if not os.path.exists(mat_dir):
+                    os.makedirs(mat_dir)
+                # Create a dictionary for save MAT-Files
+                mat_save_file = {}
+                mat_save_file["cropMap"] = cropMap
+                mat_save_file["minDist"] = minDist
+                # Saving...
+                savemat(mat_dir + name_of_area +"_"+config.dtw_save_name+".mat", mat_save_file)
+                logger.info("Saved successfully to MAT File")
+                logger.info("Save name: {}".format(config.dtw_save_name))
+                ###################################################
 
-			###----------- Save to TIF_FILES --------------###
-			print("Save to GEOTIFF File...")
-			save_to_geotiff(cropMap, "vegetables")		    
-			save_to_geotiff(minDist, "mindist")
+                ###----------- Save to TIF_FILES --------------###
+                print("Save to GEOTIFF File...")
+                save_to_geotiff(cropMap, "vegetables_row_{}_col_{}".format(i, j))
+                save_to_geotiff(minDist, "mindist_row_{}_col_{}".format(i, j))
 
     ###################################################
     return
 
 
-def save_to_geotiff(data_array, map_type):
-	# Check Directory		    
-	tif_dir = home + config.dtw_tif_save_dir
-	if not os.path.exists(tif_dir):
-	    os.makedirs(tif_dir)
-	nx = data_array.shape[0]
-	ny = data_array.shape[1]
-	# Set geotransform
-	xmin, ymin, xmax, ymax = [min(lon), min(lat), max(lon), max(lat)]
-	xres = (xmax - xmin) / float(nx)
-	yres = (ymax - ymin) / float(ny)
-	geotransform = (xmin, xres, 0, ymax, 0, -yres)
-	# create the 1-band raster file
-	file_name = "{}{}_{}_{}.geotiff".format(tif_dir, name_of_area, config.dtw_save_name, map_type)
-	if map_type == "vegetables":
-		data_type = gdal.GDT_UInt16
-	else:
-		data_type = gdal.GDT_Float32
-	dst_ds = gdal.GetDriverByName("GTiff").Create(file_name, ny, nx, 1, data_type, options = ["COMPRESS=DEFLATE"])
-	dst_ds.SetGeoTransform(geotransform)  # specify coords
-	srs = osr.SpatialReference()  # establish encoding
-	srs.ImportFromEPSG(epsg)
-	dst_ds.SetProjection(srs.ExportToWkt())  # export coords to file
-	dst_ds.GetRasterBand(1).WriteArray(data_array)
-	dst_ds.GetRasterBand(1).SetNoDataValue(0)
-	# Saving...
-	dst_ds.FlushCache()  # write to disk
-	dst_ds = None
-	logger.info("Saved successfully to GEOTIFF File...")
+def save_to_geotiff(data_array, geotiff_name):
+    # Check Directory		    
+    tif_dir = home + config.dtw_tif_save_dir
+    if not os.path.exists(tif_dir):
+        os.makedirs(tif_dir)
+    nx = data_array.shape[0]
+    ny = data_array.shape[1]
+    # Set geotransform
+    xmin, ymin, xmax, ymax = [min(lon), min(lat), max(lon), max(lat)]
+    xres = (xmax - xmin) / float(nx)
+    yres = (ymax - ymin) / float(ny)
+    geotransform = (xmin, xres, 0, ymax, 0, -yres)
+    # create the 1-band raster file
+    file_name = "{}{}_{}_{}.geotiff".format(tif_dir, name_of_area, config.dtw_save_name, geotiff_name)
+    if "vegetables" in geotiff_name:
+        data_type = gdal.GDT_UInt16
+    else:
+        data_type = gdal.GDT_Float32
+    dst_ds = gdal.GetDriverByName("GTiff").Create(file_name, ny, nx, 1, data_type, options = ["COMPRESS=DEFLATE"])
+    dst_ds.SetGeoTransform(geotransform)  # specify coords
+    srs = osr.SpatialReference()  # establish encoding
+    srs.ImportFromEPSG(epsg)
+    dst_ds.SetProjection(srs.ExportToWkt())  # export coords to file
+    dst_ds.GetRasterBand(1).WriteArray(data_array)
+    dst_ds.GetRasterBand(1).SetNoDataValue(0)
+    # Saving...
+    dst_ds.FlushCache()  # write to disk
+    dst_ds = None
+    logger.info("Saved successfully to GEOTIFF File...")
 
 
 ### ------------Built in function -------------####
@@ -383,7 +389,7 @@ def temporal_filter(im_mat):
         im_mat_f = np.squeeze(im_mat[:, :, f, :])
         im_mat_f_res = im_mat_f.reshape(d1 * d2, tsLen)
         for i in range(0, (d1 * d2)):  # haven"t implemented parallelization
-            im_mat_f_res[i, :] = savgol_filter(im_mat_f_res[i, :], 5, 2, mode="mirror")
+            im_mat_f_res[i, :] = savgol_filter(im_mat_f_res[i, :], 5, 2 ) # , mode="mirror")
         im_mat_filtered[:, :, f, :] = im_mat_f_res.reshape(d1, d2, tsLen)  # reshape(im_mat_f,[d1,d2,1,tsLen])
     return im_mat_filtered
 temporal_filter_jit = numba.jit(temporal_filter)
